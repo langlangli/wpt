@@ -6,6 +6,7 @@ from six import BytesIO
 from ...lint.lint import check_global_metadata
 from ..sourcefile import SourceFile, read_script_metadata, js_meta_re, python_meta_re
 
+
 def create(filename, contents=b""):
     assert isinstance(contents, bytes)
     return SourceFile("/", filename, "/", contents=contents)
@@ -144,6 +145,7 @@ def test_worker():
     for item, url in zip(items, expected_urls):
         assert item.url == url
         assert item.timeout is None
+
 
 def test_window():
     s = create("html/test.window.js")
@@ -640,6 +642,29 @@ def test_relative_testdriver(ext):
     s = create(filename, content)
 
     assert not s.has_testdriver
+
+
+@pytest.mark.parametrize("ext", ["htm", "html"])
+def test_quic_html(ext):
+    content = b'<meta name="quic" content="true">'
+
+    filename = "html/test." + ext
+    s = create(filename, content)
+
+    assert s.quic
+
+
+def test_quic_js():
+    content = b"""// META: quic=true
+importScripts('/resources/testharness.js')
+test()"""
+
+    filename = "html/test.any.js"
+    s = create(filename, content)
+
+    _, items = s.manifest_items()
+    for item in items:
+        assert item.quic
 
 
 @pytest.mark.parametrize("ext", ["htm", "html"])
