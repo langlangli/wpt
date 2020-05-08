@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<img src="{{hosts[alt][www]}}:{{ports[https][0]}}/resource-timing/resources/status-code.py?status=200">
+<img src="{{hosts[alt][www]}}:{{ports[https][0]}}/resource-timing/resources/status-code.py?status=307">
+<img src="{{hosts[alt][www]}}:{{ports[https][0]}}/resource-timing/resources/status-code.py?status=404">
+<img src="{{hosts[alt][www]}}:{{ports[https][0]}}/resource-timing/resources/status-code.py?status=502">
+<script src="{{hosts[alt][www]}}:{{ports[https][0]}}/resource-timing/resources/status-code.py?status=200&script=1"></script>
+<script src="{{hosts[alt][www]}}:{{ports[https][0]}}/resource-timing/resources/status-code.py?status=307&script=1"></script>
+<script src="{{hosts[alt][www]}}:{{ports[https][0]}}/resource-timing/resources/status-code.py?status=404&script=1"></script>
+<script src="{{hosts[alt][www]}}:{{ports[https][0]}}/resource-timing/resources/status-code.py?status=502&script=1"></script>
+<script>
+async_test(t => {
+  window.addEventListener("load", t.step_func_done(() => {
+    const images = document.getElementsByTagName("img");
+    // We will check that the non-timestamp values of the entry match for all entries.
+    const keys = ['entryType', 'initiatorType', 'nextHopProtocol', 'transferSize', 'encodedBodySize', 'decodedBodySize'];
+    let firstEntry = null;
+    function CheckEntry(src) {
+      assert_equals(performance.getEntriesByName(src).length, 1, src);
+      const entry = performance.getEntriesByName(src)[0];
+      if (!firstEntry) {
+        firstEntry = entry;
+      } else {
+        keys.forEach(key => {
+          assert_equals(entry[key], firstEntry[key], `Discernible difference in ${key} for ${src}`);
+        });
+      }
+    }
+    for (let img of images) {
+      CheckEntry(img.src);
+    }
+    const scripts = document.getElementsByTagName("script");
+    firstEntry = null;
+    for (let script of scripts) {
+      // Ignore this script and any harness/helper scripts.
+      if (script.src && script.src.includes('status-code.py')) {
+        CheckEntry(script.src);
+      }
+    }
+  }));
+}, "Make sure cross origin resource fetch failures with different status codes are indistinguishable");
+</script>
