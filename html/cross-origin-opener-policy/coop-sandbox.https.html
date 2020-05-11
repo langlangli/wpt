@@ -26,4 +26,18 @@
     }));
   }, `<iframe sandbox="${sandboxValue}"> ${document.title}`);
 });
+
+async_test(t => {
+  const frame = document.createElement("iframe");
+  const channel = new BroadcastChannel(token());
+  frame.sandbox = "allow-scripts allow-same-origin";
+  frame.name = channel;
+  frame.src = "resources/coop-coep.py?coop=same-origin&coep=&channel=${channel.name}";
+  channel.onmessage = t.step_func( event => {
+    const payload = event.data;
+    assert_equals(payload.name, channel, "name");
+    t.done();
+  });
+  t.add_cleanup(() => frame.remove());
+}, `Iframe with sandbox and COOP must load ${document.title}`);
 </script>
